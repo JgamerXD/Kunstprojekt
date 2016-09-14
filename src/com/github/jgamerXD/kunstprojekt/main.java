@@ -32,7 +32,10 @@ class main {
             frame.setVisible(true);
         });
 
-        Mat mat = Imgcodecs.imread("/lena.png");
+        Mat mat = Imgcodecs.imread("spider-oben.jpg");
+
+        System.out.println(mat);
+
 
     }
 
