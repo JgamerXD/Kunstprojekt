@@ -1,5 +1,10 @@
 package com.github.jgamerXD.kunstprojekt;
 
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
+import org.opencv.imgcodecs.Imgcodecs;
+
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +59,7 @@ public class Sorter {
     List<SortingData> toBePlaced;
     Color[][] optimalColors;
 
-    public Sorter(ImageData[] images,Image target){
+    public Sorter(ImageData[] images,Mat target){
 
         toBePlaced = new ArrayList<SortingData>(images.length);
 
@@ -73,13 +78,33 @@ public class Sorter {
             area += id.w*id.h;
         }
 
-        int sizeX = (int)(Math.sqrt(area)*target.getWidth(null)/target.getHeight(null)+minW);
+        int sizeX = (int)(Math.sqrt(area)*(target.cols()/4)/target.rows()+minW);
         int sizeY = area/sizeX + minH;
 
         result = new SortingData[sizeX][sizeY];
         optimalColors = new Color[sizeX][sizeY];
 
-        //TOD
+
+
+        for (int i = 0; i < optimalColors.length; i++) {
+            int startrow = target.rows()/(i/sizeX);
+            int endrow = target.rows()/((i+1)/sizeX);
+
+            for (int j = 0; j < optimalColors[i].length; j++) {
+                int startcol = target.cols()/(i/sizeX);
+                int endcol = (target.cols()/4)/((i+1)/sizeX)*4;
+
+                double[] color = Core.mean(target.submat(startrow,endrow,startcol,endcol)).val;
+
+                //In Java Color umwandeln (von ABGR)
+                optimalColors[i][j] = new Color((float)color[3],(float)color[2],(float)color[1],(float)color[0]);
+
+            }
+
+        }
+
+
+        System.out.println(optimalColors);
     }
 
 }
