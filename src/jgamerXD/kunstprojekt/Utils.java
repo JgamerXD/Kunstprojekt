@@ -1,4 +1,4 @@
-package com.github.jgamerXD.kunstprojekt;
+package jgamerXD.kunstprojekt;
 
 import javax.swing.*;
 import java.awt.geom.AffineTransform;

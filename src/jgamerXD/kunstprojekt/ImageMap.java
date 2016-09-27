@@ -1,4 +1,4 @@
-package com.github.jgamerXD.kunstprojekt;
+package jgamerXD.kunstprojekt;
 
 import java.util.ArrayList;
 import java.util.List;

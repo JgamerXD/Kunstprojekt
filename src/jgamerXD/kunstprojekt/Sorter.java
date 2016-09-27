@@ -1,11 +1,9 @@
-package com.github.jgamerXD.kunstprojekt;
+package jgamerXD.kunstprojekt;
 
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
-import org.opencv.imgcodecs.Imgcodecs;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,7 +55,7 @@ class Score implements Comparable<Score>{
 public class Sorter {
     SortingData[][] result;
     List<SortingData> toBePlaced;
-    Color[][] optimalColors;
+    Scalar[][] optimalColors;
 
     public Sorter(ImageData[] images,Mat target){
 
@@ -73,32 +71,34 @@ public class Sorter {
             toBePlaced.add(new SortingData(id));
             minW = Math.min(minW,id.w);
             maxW = Math.max(maxW,id.w);
-            minW = Math.min(minW,id.h);
+            minH = Math.min(minW,id.h);
             maxH = Math.max(maxH,id.h);
             area += id.w*id.h;
         }
 
-        int sizeX = (int)(Math.sqrt(area)*(target.cols()/4)/target.rows()+minW);
-        int sizeY = area/sizeX + minH;
+
+        int sizeX = ((int)(Math.sqrt(area)*(target.cols()/4)/target.rows()+minW));
+        int sizeY = (area/sizeX + minH);
 
         result = new SortingData[sizeX][sizeY];
-        optimalColors = new Color[sizeX][sizeY];
+        optimalColors = new Scalar[sizeX][sizeY];
 
 
+//
+//        int startcol = 0;
+//        int endcol = (target.cols()/4)/((i+1)/sizeX)*4;
+//        int startrow = 0;
+//        int endrow = target.rows()/((i+1)/sizeX);
 
         for (int i = 0; i < optimalColors.length; i++) {
-            int startrow = target.rows()/(i/sizeX);
-            int endrow = target.rows()/((i+1)/sizeX);
+            int startrow = target.rows()*(i/sizeX);
+            int endrow = target.rows()*((i+1)/sizeX);
 
             for (int j = 0; j < optimalColors[i].length; j++) {
-                int startcol = target.cols()/(i/sizeX);
-                int endcol = (target.cols()/4)/((i+1)/sizeX)*4;
+                int startcol = target.cols()*(i/sizeX);
+                int endcol = (target.cols()/4)*((i+1)/sizeX)*4;
 
-                double[] color = Core.mean(target.submat(startrow,endrow,startcol,endcol)).val;
-
-                //In Java Color umwandeln (von ABGR)
-                optimalColors[i][j] = new Color((float)color[3],(float)color[2],(float)color[1],(float)color[0]);
-
+                optimalColors[i][j] = Core.mean(target.submat(startrow,endrow,startcol,endcol));
             }
 
         }
