@@ -22,4 +22,5 @@ for w in widths:
 			im = np.zeros((hh,ww,3),dtype=np.uint8)
 			im[:,:,:] = color
 			cv2.imwrite(".\images\{}x{}_{}.png".format(w,h,i),im)
+
 	
