@@ -2,6 +2,8 @@ from os import listdir
 from os.path import isfile, join
 
 from collections import namedtuple
+from math import *
+import numpy as np
 import io
 import argparse
 import json
@@ -34,11 +36,13 @@ class ImgDat{
 }
 """
 
-class ImgDat
+#class ImgDat
 	
 
 parser = argparse.ArgumentParser(description='sort using json files')
+parser.add_argument('target', metavar='T', nargs='?',help='Target image')
 parser.add_argument('dirs', metavar='D', nargs='+',help='directory(s) with json files')
+
 
 args = parser.parse_args()
 
@@ -50,6 +54,8 @@ ImgDat = namedtuple('ImgDat',['w','h','col','px','py','scores'])
 images = []
 
 files = []
+
+
 
 
 
@@ -68,11 +74,108 @@ for f in files:
 	images.append(imgdat)
 	
 print(images)
+
+numImages = len(images)
+
+
+
+
+#TODO set from args or calculate
+width = 0
+height = 0
+
+
+#Optimale Farben bestimmen
+colorLookup = np.array((width,height,3),dtype=np.float32)
+
+def defaultLookup():
+    for i in range(width):
+        temp = []
+        for j in range(height):
+            #h[0,179] s[0,255] v[0,255]
+            temp.append(((x/width+y/height)/2*180,255,255))
+            
+        colorLookup.append(temp)
+    
+
+def lookupFromImage(img):
+    defaultLookup()
 	
 
 
+#TODO Winkeleinheiten prüfen
+def calcScore(image,x,y):
+    #Farbe des Ziels (h)
+    h = {0,0}
+    #region in lookup table
+    lr = colorLookup[x:x+image.w,y:y+image.h,:]
+    for c in lr[:,:,0]
+        h[0] += cos(c)
+        h[1] += sin(c)
+    #(h,s,v)
+    col =  (atan2(h[0],h[1]),mean(lr[:,:,1]),mean(lr[:,:,2]))       
+    
+    diff = np.absolute(image.col - col)
+    
+    sc = diff[0] ** 4 + diff[1] ** 2 + diff[2] 
+    
+    return Score(x,y,sc)
+        
+            
+def sortImages(images,w,h):
+    table = np.zeroes((w,h),dtype=np.int)
+    
+    for img in images:
+        placed = False
+        for sc in img.scores:
+            valid = np.maximum(table[sc.x:sc.x+image.w,sc.y:sc.y+image.h]) <= 0
+            
 
+'''
+  for(ImgDat d:images)
+  {
+    println("placing...");
+    //Ersten Score an freier stelle wählen
+    for(Score s:d.scores)
+    {
+       
+       boolean valid = true;
+       
+       //Ist Stelle Frei?
+       for(int i = s.x; i<s.x+d.w;i++)
+         for(int j = s.y; j<s.y+d.h;j++)
+         {
+           valid = valid && result[i][j] == null;
+         }
+       //Platzieren
+       //println(s.x,s.y,result[s.x][s.y],valid);
+       if(valid){
+         d.origX=s.x;
+         d.origY=s.y;
+         for(int i = s.x; i<s.x+d.w;i++)
+           for(int j = s.y; j<s.y+d.h;j++)
+           {
+            result[i][j]=d; 
+           }
+         println("succesful!");
+         break;
+       }
+    }
+  }
+  '''     
+     
+#Lookup generieren
+if not args.target == None:
+    lookupFromImage(args.target)
+else:
+    defaultLookup()
 
+#scores berechnen
+for i in images:
+    for x in range(0,width-image.w):
+        for y in range(0,height-image.h):
+            image.scores.append(calcScore(image,x,y))
+            
 
 
 """
