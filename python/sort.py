@@ -7,6 +7,7 @@ import numpy as np
 import io
 import argparse
 import json
+from json import JSONEncoder
 
 """
 parser = argparse.ArgumentParser(description='Analyzes images for sorting')
@@ -40,6 +41,7 @@ class ImgDat{
 	
 
 parser = argparse.ArgumentParser(description='sort using json files')
+parser.add_argument('output', metavar='O', nargs=1,help='Output json file')
 parser.add_argument('target', metavar='T', nargs='?',help='Target image')
 parser.add_argument('dirs', metavar='D', nargs='+',help='directory(s) with json files')
 
@@ -49,8 +51,25 @@ args = parser.parse_args()
 
 Score = namedtuple('Score',['x','y','score'])
 
-ImgDat = namedtuple('ImgDat',['w','h','col','px','py','scores'])
+class ImgDat:
+    px = 0
+    py = 0
+    scores = []
+    
+    def __init__(self,id,w,h,col):
+        self.id = id
+        self.w = w
+        self.h = h
+        self.col = col
 
+        
+class ImgDatJSONEncoder(JSONEncoder)
+    def default(self,obj):
+        if isinstance(obj,ImgDat)
+            return dict(id=obj.id,x=obj.px,y=obj.py)
+        
+        return json.JSONEncoder.default(self,obj)
+    
 images = []
 
 files = []
@@ -65,13 +84,14 @@ for d in args.dirs:
 
 for f in files:
 	jf = io.open(f)
-	i = json.load(jf)
+	imgs = json.load(jf)
 	jf.close()
-	imgdat = ImgDat(0,0,(),0,0,[])
-	imgdat.w  = i.get('w')
-	imgdat.h  = i.get('h')
-	imgdat.col  = i.get('col')
-	images.append(imgdat)
+    for i in imgs: 
+        imgdat = ImgDat(f,i.get('w'),i.get('h'),i.get('col'))
+        imgdat.w  = i.get('w')
+        imgdat.h  = i.get('h')
+        imgdat.col  = i.get('col')
+        images.append(imgdat)
 	
 print(images)
 
@@ -124,12 +144,25 @@ def calcScore(image,x,y):
             
 def sortImages(images,w,h):
     table = np.zeroes((w,h),dtype=np.int)
-    
     for img in images:
+        current = img
         placed = False
-        for sc in img.scores:
+        for sc in current.scores:
             valid = np.maximum(table[sc.x:sc.x+image.w,sc.y:sc.y+image.h]) <= 0
+            if valid:
+                table[sc.x:sc.x+image.w,sc.y:sc.y+image.h] = images.index(current)
+                current.px = sc.x
+                current.py = sc.y
+     return table       
             
+            
+def output(images)
+    outfile=args.output
+    if not outfile.endswith('.json')
+        outfile += '.json'
+    t = io.open(outfile, mode='wt')
+    json.dumps(images,cls=ImgDatJSONEncoder)
+    t.close()
 
 '''
   for(ImgDat d:images)
@@ -172,10 +205,16 @@ else:
 
 #scores berechnen
 for i in images:
+    scores = {}
     for x in range(0,width-image.w):
         for y in range(0,height-image.h):
-            image.scores.append(calcScore(image,x,y))
+            scores.append(calcScore(image,x,y))
+     image.scores = sorted(scores,key=lambda s: s.score)       
             
+#TODO: Größe bestimmen
+
+sortImages(images,100,100)
+output(images)
 
 
 """

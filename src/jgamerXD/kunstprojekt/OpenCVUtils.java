@@ -1,11 +1,14 @@
 package jgamerXD.kunstprojekt;
 
 import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
 import org.opencv.imgcodecs.Imgcodecs;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.File;
+import java.util.Arrays;
 
 /**
  * Created by Janki on 26.09.2016.
@@ -33,5 +36,14 @@ public class OpenCVUtils {
     public static Mat readFile(File f)
     {
         return Imgcodecs.imread(f.getAbsolutePath());
+    }
+
+    public static Color scalarToColor(Scalar scalar)
+    {
+        double[] values = scalar.val;
+        for (int i = 0; i < values.length; i++) {
+            values[i] /= 255.0;
+        }
+        return new Color((float) values[2],(float)values[1],(float)values[0]);
     }
 }

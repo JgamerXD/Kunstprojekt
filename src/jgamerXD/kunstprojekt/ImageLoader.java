@@ -14,7 +14,7 @@ public class ImageLoader {
 
 
 
-    static List<Mat> loadfromDirectory(String folder,List<String> extensions)
+    public static List<Mat> loadfromDirectory(String folder,List<String> extensions)
     {
         File dir = Utils.getResourceFile(folder);
 
