@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import argparse
 import json
 import io
+from math import *
 
 import cv2
 import numpy as np
@@ -25,22 +26,25 @@ files = []
 for d in args.dirs:
 	files = files + [join(d,f) for f in listdir(d) if isfile(join(d, f))]
 
-#Bilder einlesen [(Dateiname,Bild)]
 images = [cv2.imread(f) for f in files]
 #Nur geladene Bilder behalten
 imfi = np.array([(i,f) for i,f in zip(images,files) if not i == None])
-images = np.array(imfi[:,0])
-
+images = np.array([cv2.cvtColor(i,cv2.COLOR_BGR2HSV) for i in imfi[:,0]])
+#cv2.imshow("debug",images[0])
+#cv2.waitKey(0)
 files = imfi[:,1]
 del imfi
 
 
 #Breite und Hoehe aller Bilder 
 sizes = np.array([i.shape for i in images],dtype=np.int)
-means = [i.mean() for i in images]
+
+print(images.shape)
+
+means = [(i[:,:,0].mean(),i[:,:,1].mean(),i[:,:,2].mean()) for i in images]
+#print(means)
 del images
-#Seitenverhaeltnisse der Bilder
-aspects = sizes[:,0]/sizes[:,1]
+
 
 minw = np.min(sizes[:,0])
 minh = np.min(sizes[:,1])
@@ -107,11 +111,11 @@ plt.show()
 
 
 
-print(np.argmin(np.array([9,5,7,5,9,6,5])))
 
-gw = max(np.argmin(wscores[:,1]))
 
-gh =  max(np.argmin(hscores[:,1]))
+cw = np.argmin(wscores[:,1])
+
+ch =  np.argmin(hscores[:,1])
 
 
 
@@ -120,7 +124,7 @@ gh =  max(np.argmin(hscores[:,1]))
 gss = []
 
 for s in sizes:
-    gss.append((int(s[0]/gw),int(s[1]/gh)))
+    gss.append((int(s[0]/cw),int(s[1]/ch)))
 gridsizes = np.array(gss)
 del gss
 
@@ -128,18 +132,33 @@ ass = np.multiply(gridsizes[:,0],gridsizes[:,1])
 
 area = np.sum(ass)
 
-print(area)
+#Seitenverhaeltnisse der Bilder  w/h
+aspects = sizes[:,0]/sizes[:,1]  
+
+aspect = aspects.mean()
+del aspects
+
+print(aspect)
+
+gh = int(sqrt(area / aspect + 1))
+gw = int(area / gh)
+
+gh += int(minh/ch)
+gw += int(minw/cw)
 
 
-grid = {"cellHeight":0,"cellWidth":0,"gridHeight":0,"gridWidth":0}
+
+grid = {"cellHeight":int(ch),"cellWidth":int(cw),"gridHeight":int(gh),"gridWidth":int(gw)}
 
 
 imageData=[]
-for mean, gridsize, file in itertools.izip(means,gridsizes,files):
-    imageData.append({"file":file,"w": gridsize[0], "h": gridsize[1], "col":mean})
+for mean, gridsize, file in zip(means,gridsizes,files):
+    imageData.append({"file":file,"w": int(gridsize[0]), "h": int(gridsize[1]), "col":[int(i) for i in mean]})
+
+#print(grid,imageData)
     
 out = io.open("./test.json",mode='wt')
-json.dumps({"grid":grid, "images":imageData})
+json.dump({"grid":grid, "images":imageData},out)
 out.close()
 
 
