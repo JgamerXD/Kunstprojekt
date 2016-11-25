@@ -1,62 +1,85 @@
 from os import listdir
 from os.path import isfile, join
-#from collections import dict
-#from sets import Set
-import matplotlib.pyplot as plt
+from math import *
 
+import numpy as np
+import matplotlib.pyplot as plt
 import argparse
 import json
 import io
-from math import *
-
 import cv2
-import numpy as np
+import time
 
+
+#define arguments
 parser = argparse.ArgumentParser(description='Analyzes images for sorting')
+parser.add_argument('out', metavar='O', nargs=1,help='output json')
 parser.add_argument('dirs', metavar='D', nargs='+',help='directory(s) with images')
 
 args = parser.parse_args()
 
 
+#the time the program was started
+startTime = time.time()
+#prints log messages in the format [time since start]:  [message]
+def logtime(msg):
+    print("{:.3f}:\t {}".format(time.time() - startTime,msg))
 
 
+logtime("Load images")
+    
+#all files in target directories
 files = []
 
-#Dateien in Ordnern finden
+#find files in directories
 for d in args.dirs:
 	files = files + [join(d,f) for f in listdir(d) if isfile(join(d, f))]
 
+#load an image from each file
 images = [cv2.imread(f) for f in files]
-#Nur geladene Bilder behalten
-imfi = np.array([(i,f) for i,f in zip(images,files) if not i == None])
-images = np.array([cv2.cvtColor(i,cv2.COLOR_BGR2HSV) for i in imfi[:,0]])
-#cv2.imshow("debug",images[0])
-#cv2.waitKey(0)
+#discard invalid images and corresponding files
+imfi = np.array([[i,f] for i,f in zip(images,files) if not i is None])
 files = imfi[:,1]
+
+#convert images to the L*a*b color space for easier sorting
+images = np.array([cv2.cvtColor(i,cv2.COLOR_BGR2LAB) for i in imfi[:,0]])
+
+
 del imfi
 
 
-#Breite und Hoehe aller Bilder 
+#print number of images
+print("Loaded {} images.".format(len(images)))
+
+
+
+logtime("Get average colors")
+
+
+means = [[int(j) for j in i.mean(0).mean(0)] for i in images]
+
+
+logtime("Calculate optimal cell size")
+
+
+#image sizes
 sizes = np.array([i.shape for i in images],dtype=np.int)
 
-print(images.shape)
-
-means = [(i[:,:,0].mean(),i[:,:,1].mean(),i[:,:,2].mean()) for i in images]
-#print(means)
 del images
 
-
+#minimal sizes
 minw = np.min(sizes[:,0])
 minh = np.min(sizes[:,1])
 
+
 """
+Bedingungen an Rastergröße
 - Kleiner als kleinstes Bild
 - möglichst nah an anderen
 """
 
+#height
 hscorestmp = []
-
-
 for i in range(2,minh+1):
     steps = set()
     diff = 0
@@ -64,20 +87,13 @@ for i in range(2,minh+1):
         steps.add(int(h/i))
         diff += h % i
     diff /= sizes.shape[1]
-    score = i + diff * len(steps) ** 3
+    score = diff * len(steps) ** 3 - i
     hscorestmp.append((i,score,diff,len(steps)))
     
 hscores = np.array(hscorestmp)
 del hscorestmp
 
-'''
-plt.plot(hscores[:,0],(hscores[:,1]/max(hscores[:,1])),'r-',
-                        (hscores[:,2]/max(hscores[:,2])),'b-',
-                        (hscores[:,3]/max(hscores[:,3])),'g-')
-                        
-plt.axvline(np.argmin(hscores[:,1]))                     
-plt.show()'''
-
+#width
 wscorestmp = []
 for i in range(2,minw+1):
     steps = set()
@@ -86,12 +102,18 @@ for i in range(2,minw+1):
         steps.add(int(w/i))
         diff += w % i
     diff /= sizes.shape[1]
-    score = i + diff * len(steps) ** 3
+    score = diff * len(steps) ** 3 -i
     wscorestmp.append((i,score,diff,len(steps)))
     
 wscores = np.array(wscorestmp)
 del wscorestmp
 
+
+
+
+
+
+logtime("Show results")
 
 plt.figure()
 plt.plot(hscores[:,0],(hscores[:,1]/max(hscores[:,1])),'r-',
@@ -110,7 +132,7 @@ plt.axvline(np.argmin(wscores[:,1]))
 plt.show()
 
 
-
+logtime("Calculate grid size")
 
 
 cw = np.argmin(wscores[:,1])
@@ -120,44 +142,50 @@ ch =  np.argmin(hscores[:,1])
 
 
 
-
+#image sizes in grid
 gss = []
-
 for s in sizes:
     gss.append((int(s[0]/cw),int(s[1]/ch)))
 gridsizes = np.array(gss)
 del gss
 
+#calculate area covered by images
 ass = np.multiply(gridsizes[:,0],gridsizes[:,1])
-
 area = np.sum(ass)
 
-#Seitenverhaeltnisse der Bilder  w/h
-aspects = sizes[:,0]/sizes[:,1]  
+#Seitenverhältnisse der Bilder  w/h
+aspects = gridsizes[:,0]/gridsizes[:,1]  
 
 aspect = aspects.mean()
 del aspects
 
 print(aspect)
 
-gh = int(sqrt(area / aspect + 1))
-gw = int(area / gh)
+gw = int(sqrt(area / aspect + 1))
+gh = int(area / gw)
 
-gh += int(minh/ch)
-gw += int(minw/cw)
+gw += int(minh/ch)
+gh += int(minw/cw)
 
 
+
+logtime("Compiling data")
 
 grid = {"cellHeight":int(ch),"cellWidth":int(cw),"gridHeight":int(gh),"gridWidth":int(gw)}
 
 
+
+
 imageData=[]
+id = 0
 for mean, gridsize, file in zip(means,gridsizes,files):
-    imageData.append({"file":file,"w": int(gridsize[0]), "h": int(gridsize[1]), "col":[int(i) for i in mean]})
+    imageData.append({"id":id,"file":file,"w": int(gridsize[0]), "h": int(gridsize[1]), "col":mean})
+    id = id+1
 
 #print(grid,imageData)
+logtime("Writing to disk")
     
-out = io.open("./test.json",mode='wt')
+out = io.open(args.out[0],mode='wt')
 json.dump({"grid":grid, "images":imageData},out)
 out.close()
 
