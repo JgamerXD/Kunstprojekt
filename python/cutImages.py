@@ -7,6 +7,7 @@ import numpy as np
 import argparse
 
 
+#Allows to easily cut multiple images from a large number of images
 
 parser = argparse.ArgumentParser(description='crops')
 

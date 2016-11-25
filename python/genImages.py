@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import random
 
+#Generates single color images in different sizes for testing
 
 #sizes
 widths = [100,200,400,500]

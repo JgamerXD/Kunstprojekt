@@ -1,3 +1,7 @@
+/**
+ * Test program written in Processing 3
+ **/
+
 import java.util.*;
 
 class ImgDat{
